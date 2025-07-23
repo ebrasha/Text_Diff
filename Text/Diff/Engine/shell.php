@@ -18,6 +18,10 @@
  */
 class Text_Diff_Engine_shell {
 
+    function __construct()
+    {
+        $this->setDiffCommand('diff'); // Set default command securely
+    }
     /**
      * Path to the diff executable
      *
@@ -49,7 +53,7 @@ class Text_Diff_Engine_shell {
         $fp = fopen($to_file, 'w');
         fwrite($fp, implode("\n", $to_lines));
         fclose($fp);
-        $diff = shell_exec($this->_diffCommand . ' ' . $from_file . ' ' . $to_file);
+        $diff = shell_exec($this->_diffCommand . ' ' . escapeshellarg($from_file) . ' ' . escapeshellarg($to_file));
         unlink($from_file);
         unlink($to_file);
 
@@ -160,5 +164,28 @@ class Text_Diff_Engine_shell {
 
         return $lines;
     }
+
+
+    /**
+     * Securely sets the diff command to be used.
+     *
+     * This function restricts the allowed diff commands to a predefined whitelist
+     * in order to prevent arbitrary command injection through the $_diffCommand variable.
+     * Without this control, an attacker could potentially set this variable to a
+     * malicious shell command and achieve Remote Code Execution (RCE).
+     *
+     * @param string $command The diff command to use (e.g., 'diff', 'git diff', 'svn diff').
+     *
+     * @throws Exception If the command is not in the list of allowed diff tools.
+     */
+    function setDiffCommand($command)
+    {
+        $allowed = array('diff', 'git diff', 'svn diff'); // Whitelisted safe diff commands
+        if (!in_array($command, $allowed)) {
+            throw new Exception('Unauthorized diff command'); // Reject unsafe commands
+        }
+        $this->_diffCommand = $command; // Safely assign validated command
+    }
+
 
 }
